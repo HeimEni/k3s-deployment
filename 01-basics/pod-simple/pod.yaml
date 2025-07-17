@@ -22,22 +22,3 @@ spec:                               # Section spécifiant la configuration du De
           image: nginx:alpine       # Image Docker utilisée. 'nginx:alpine' est une version légère de Nginx basée sur Alpine Linux.
           ports:                    # Définition des ports exposés par le container.
             - containerPort: 80     # Le container écoute sur le port 80 (port HTTP par défaut).
-
-# -------------------- SERVICE --------------------
----
-apiVersion: v1                      # Version de l'API Kubernetes pour les Services (v1 est la version stable).
-kind: Service                       # Type de ressource : un Service, qui permet d'exposer un ensemble de Pods.
-metadata:
-  name: nginx-service               # Nom du Service, utilisé pour l'identifier dans le cluster.
-
-spec:                               # Spécification du Service.
-  selector:                         # Définition des Pods cibles via leurs labels.
-    app: nginx                      # Le Service enverra le trafic vers tous les Pods ayant ce label.
-
-  ports:                            # Liste des ports exposés par le Service.
-    - protocol: TCP                 # Protocole utilisé pour le trafic réseau (ici TCP, adapté pour HTTP).
-      port: 443                      # Port exposé par le Service à l'intérieur du cluster.
-      targetPort: 80                # Port du container à atteindre sur les Pods (celui défini dans le Deployment).
-
-  type: NodePort                    # Type de Service. NodePort permet d'exposer le Service sur un port de chaque nœud du cluster.
-  # Tu pourras y accéder via l'IP du nœud et le port attribué par Kubernetes.
