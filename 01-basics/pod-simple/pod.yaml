@@ -1,19 +1,43 @@
-apiVersion: apps/v1
-kind: Deployment
+# -------------------- DÉPLOIEMENT --------------------
+apiVersion: apps/v1                 # Version de l'API Kubernetes utilisée pour les déploiements (apps/v1 est la version stable actuelle).
+kind: Deployment                    # Type de ressource : un Deployment, qui gère la création, la mise à l'échelle et les mises à jour des Pods.
 metadata:
-  name: nginx-test
-spec:
-  replicas: 2
-  selector:
-    matchLabels:
-      app: nginx
-  template:
+  name: nginx-test                  # Nom du Deployment. Sert d'identifiant unique dans le namespace.
+
+spec:                               # Section spécifiant la configuration du Deployment.
+  replicas: 2                       # Nombre de Pods répliqués que l'on souhaite (ici, 2 Pods Nginx identiques tourneront en parallèle).
+
+  selector:                         # Définit quels Pods seront gérés par ce Deployment.
+    matchLabels:                    # Condition : les Pods doivent avoir les labels spécifiés ci-dessous.
+      app: nginx                    # Ici, tous les Pods avec le label "app: nginx" seront gérés par ce Deployment.
+
+  template:                         # Modèle de Pod à utiliser pour créer les réplicas.
     metadata:
-      labels:
-        app: nginx
-    spec:
-      containers:
-        - name: nginx
-          image: nginx:alpine
-          ports:
-            - containerPort: 80
+      labels:                       # Labels appliqués aux Pods créés par ce Deployment.
+        app: nginx                  # Ce label doit correspondre au "selector" plus haut pour que le Service et le Deployment fonctionnent correctement.
+
+    spec:                           # Spécification du Pod (contenu du Pod).
+      containers:                   # Liste des containers qui tourneront dans chaque Pod.
+        - name: nginx               # Nom interne du container dans le Pod.
+          image: nginx:alpine       # Image Docker utilisée. 'nginx:alpine' est une version légère de Nginx basée sur Alpine Linux.
+          ports:                    # Définition des ports exposés par le container.
+            - containerPort: 80     # Le container écoute sur le port 80 (port HTTP par défaut).
+
+# -------------------- SERVICE --------------------
+---
+apiVersion: v1                      # Version de l'API Kubernetes pour les Services (v1 est la version stable).
+kind: Service                       # Type de ressource : un Service, qui permet d'exposer un ensemble de Pods.
+metadata:
+  name: nginx-service               # Nom du Service, utilisé pour l'identifier dans le cluster.
+
+spec:                               # Spécification du Service.
+  selector:                         # Définition des Pods cibles via leurs labels.
+    app: nginx                      # Le Service enverra le trafic vers tous les Pods ayant ce label.
+
+  ports:                            # Liste des ports exposés par le Service.
+    - protocol: TCP                 # Protocole utilisé pour le trafic réseau (ici TCP, adapté pour HTTP).
+      port: 80                      # Port exposé par le Service à l'intérieur du cluster.
+      targetPort: 80                # Port du container à atteindre sur les Pods (celui défini dans le Deployment).
+
+  type: NodePort                    # Type de Service. NodePort permet d'exposer le Service sur un port de chaque nœud du cluster.
+  # Tu pourras y accéder via l'IP du nœud et le port attribué par Kubernetes.
