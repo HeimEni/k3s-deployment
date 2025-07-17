@@ -1,4 +1,4 @@
-# -------------------- DÉPLOIEMENT --------------------
+# -------------------- DÉPLOIEMENT Nginx --------------------
 apiVersion: apps/v1                 # Version de l'API Kubernetes utilisée pour les déploiements (apps/v1 est la version stable actuelle).
 kind: Deployment                    # Type de ressource : un Deployment, qui gère la création, la mise à l'échelle et les mises à jour des Pods.
 metadata:
