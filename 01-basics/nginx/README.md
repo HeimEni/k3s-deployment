@@ -23,11 +23,12 @@ Avant d’utiliser ce projet, assure-toi d’avoir :
 Clone ou copie ce projet sur ta machine.
 
 Applique le manifeste Kubernetes avec la commande : <br>
-<code> kubectl apply -f pod.yaml </code> <br>
+<code> kubectl apply -f nginx.yaml </code> <br>
 
 Vérifie que les pods sont bien créés : <br>
 <code> kubectl get pods </code>
 
 📌 Notes <br>
 Ce déploiement ne crée pas de service exposé à l’extérieur du cluster.
-Pour accéder depuis l’extérieur, tu peux créer un objet Service (par exemple de type NodePort ou LoadBalancer).
+Par défaut Treafik, installé avec k3s, permet d'accéder à nos pods depuis l'ip du master
+Donc le nginx est accessible par l'IP du master
