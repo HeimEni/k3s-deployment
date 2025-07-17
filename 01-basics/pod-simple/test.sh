@@ -1,0 +1,22 @@
+#!/bin/bash
+set -e
+
+NAMESPACE=${1:-default}
+TIMEOUT=${2:-300}
+
+echo "🚀 Testing deployment in namespace: $NAMESPACE"
+
+# Apply manifests
+kubectl apply -f manifests/ -n $NAMESPACE
+
+# Wait for deployment
+kubectl wait --for=condition=available deployment --all -n $NAMESPACE --timeout=${TIMEOUT}s
+
+# Run health checks
+kubectl get pods -n $NAMESPACE
+kubectl get services -n $NAMESPACE
+
+# Run specific tests
+./scripts/health-check.sh $NAMESPACE
+
+echo "✅ Deployment test completed successfully"
