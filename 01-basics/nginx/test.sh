@@ -18,5 +18,5 @@ kubectl get services -n $NAMESPACE
 
 echo "✅ Deployment completed successfully"
 
-kubectl delete deployment $NAMESPACE
+kubectl delete deployment nginx-test
 echo "⚠️ Deployment delete completed"
