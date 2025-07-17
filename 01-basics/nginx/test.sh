@@ -7,7 +7,7 @@ TIMEOUT=${2:-300}
 echo "🚀 Testing deployment in namespace: $NAMESPACE"
 
 # Apply manifests
-kubectl apply -f manifests/ -n $NAMESPACE
+kubectl apply -f nginx.yml -n $NAMESPACE
 
 # Wait for deployment
 kubectl wait --for=condition=available deployment --all -n $NAMESPACE --timeout=${TIMEOUT}s
