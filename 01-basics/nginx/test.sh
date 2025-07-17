@@ -16,4 +16,7 @@ kubectl wait --for=condition=available deployment --all -n $NAMESPACE --timeout=
 kubectl get pods -n $NAMESPACE
 kubectl get services -n $NAMESPACE
 
-echo "✅ Deployment test completed successfully"
+echo "✅ Deployment completed successfully"
+
+kubectl delete deployment $NAMESPACE
+echo "⚠️ Deployment delete completed"
