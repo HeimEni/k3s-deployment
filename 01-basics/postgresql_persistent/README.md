@@ -1,61 +1,93 @@
-<h1>Déploiement PostgreSQL sur Kubernetes</h1>
-Ce projet contient un fichier YAML permettant de déployer un serveur PostgreSQL minimal (basé sur l’image postgres:15) dans un cluster Kubernetes.
+# Déploiement PostgreSQL sur Kubernetes
+
+Ce projet contient un fichier YAML permettant de déployer un serveur PostgreSQL minimal (basé sur l'image postgres:15) dans un cluster Kubernetes.
 
 Le déploiement crée 1 pod et expose le port 5432 pour le trafic TCP.
 
-📂 Contenu du projet <br>
+## 📂 Contenu du projet
+
 Contient la définition du déploiement Kubernetes avec :
 
-<li>1 <i>pods</i> PostgreSQL</li>
+- 1 **pod** PostgreSQL
+- Un sélecteur de labels
+- La configuration des containers et du port exposé
+- Un **Service** permettant d'exposer le service PostgreSQL aux autres pods du cluster Kubernetes
+- Un **PVC (Persistent Volume Claim)** permettant de rattacher notre pod à un PV (Persistent Volume), garantissant la conservation des données au redémarrage du/des pods
 
-<li>Un sélecteur de labels </li>
+## 🚀 Prérequis
 
-<li>La configuration des containers et du port exposé </li>
+Avant d'utiliser ce projet, assure-toi d'avoir :
 
-<li>Un <i>Service</i> permettant d'exposer le service PostgreSQL aux autres pods du cluster Kube</li>
+- Un cluster K3s fonctionnel
+- kubectl installé
 
-<li>Un <i>PVC (Permanent Volume Claim)</i> permettant de rattacher notre pod à un PV (Persistant Volume), garantissant la conservation des données au redémarrage du/des pod</li>
+## 📦 Déploiement
 
-🚀 Prérequis<br>
-Avant d’utiliser ce projet, assure-toi d’avoir :
+1. Clone ou copie ce projet sur ta machine.
 
-<li>Un cluster K3s fonctionnel</li>
+2. Applique le manifeste Kubernetes avec la commande :
+   ```bash
+   kubectl apply -f postgresql.yaml
+   ```
 
-<li>kubectl installé</li>
+3. Vérifie que le pod est bien créé :
+   ```bash
+   kubectl get pods
+   ```
 
-📦 Déploiement<br>
-Clone ou copie ce projet sur ta machine.
+4. Connecte-toi au pod :
+   ```bash
+   kubectl exec -it <nom-pod-principal> -- psql -U postgres
+   ```
 
-Applique le manifeste Kubernetes avec la commande : <br>
-<code> kubectl apply -f postgresql.yaml </code> <br>
+## 🔍 Tests de fonctionnement
 
-Vérifie que le pod est bien créés : <br>
-<code> kubectl get pods </code>
+### Vérification en lecture
 
-Connecte toi au pod : <br>
-<code>kubectl exec -it <nom-pod-principal> -- psql -U postgres</code>
+Dans le pod, tu peux vérifier le bon fonctionnement de PostgreSQL en lecture :
 
-Dans le pod tu peux vérifier le bon fonctionnement du postgres en lecture <br>
-<code>\l</code><br>
-<code>\dt</code><br>
-<code>SELECT version();</code>
+```sql
+\l
+\dt
+SELECT version();
+```
 
-Vérifier le bon fonctionnement des actions d'écritures: <br>
-<code> CREATE TABLE test_cluster (id SERIAL PRIMARY KEY, data TEXT); </code><br>
-<code> INSERT INTO test_cluster (data) VALUES ('test1'), ('test2'); </code><br>
-<code> SELECT * FROM test_cluster; </code><br>
+### Vérification des actions d'écriture
 
-Puis on valide la non persistance des données :<br>
-En supprimant le pod actuellement running<br>
-<code> kubectl delete pod <nom-pod-principal></code><br>
-Un nouveau pod est automatiquement crée pour respecter le nombre de replicas demandé<br>
-On se connecte à ce nouveau pod<br>
-<code>kubectl exec -it <nom-nouveau-pod-principal> -- psql -U postgres</code><br>
-On accède en lecture aux données précédement insérées<br>
-<code> SELECT * FROM test_cluster; </code><br>
+```sql
+CREATE TABLE test_cluster (id SERIAL PRIMARY KEY, data TEXT);
+INSERT INTO test_cluster (data) VALUES ('test1'), ('test2');
+SELECT * FROM test_cluster;
+```
 
-On observe l'absence de la table test_cluster car le pod n'est pas rattaché à un volume persistant<br>
+## 🔄 Validation de la persistance des données
 
-📌 Notes <br>
-Un service est déployé parralèlement au pods, ce mécanisme permet d'exposer la base de données aux autres pods la consomant.<br>
-Seul les pods du cluster Kube y ont accès.
+1. Supprime le pod actuellement en cours d'exécution :
+   ```bash
+   kubectl delete pod <nom-pod-principal>
+   ```
+
+2. Un nouveau pod est automatiquement créé pour respecter le nombre de replicas demandé
+
+3. Connecte-toi à ce nouveau pod :
+   ```bash
+   kubectl exec -it <nom-nouveau-pod-principal> -- psql -U postgres
+   ```
+
+4. Accède en lecture aux données précédemment insérées :
+   ```sql
+   SELECT * FROM test_cluster;
+   ```
+
+Tu observeras la présence de la table `test_cluster`, suite à la suppression du pod, car celui-ci est rattaché à un volume persistant.
+
+## 📌 Notes importantes
+
+- Un service est déployé parallèlement au pod, ce mécanisme permet d'exposer la base de données aux autres pods la consommant.
+- Seuls les pods du cluster Kubernetes y ont accès.
+- Un PVC est une demande de stockage de la part du déploiement, il utilise les ressources PV à sa disposition.
+- Une ressource PV est un composant de haut niveau créé par l'administrateur du cluster, le PVC est lui créé par le développeur/le déploiement.
+
+## ⚠️ Sécurité
+
+**Important** : Ce déploiement utilise des mots de passe en dur dans le fichier YAML. En production, utilise des Secrets Kubernetes pour stocker les informations sensibles de manière sécurisée.
