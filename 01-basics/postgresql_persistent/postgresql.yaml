@@ -10,7 +10,7 @@ spec:                              # Section spécifiant la configuration du PVC
     - ReadWriteOnce                # ReadWriteOnce : le volume peut être monté en lecture-écriture par un seul nœud à la fois.
   resources:                       # Ressources demandées pour le volume.
     requests:                      # Demande de ressources.
-      storage: 1Gi                # Taille du stockage demandé (ici, 10 gigaoctets).
+      storage: 1Gi                # Taille du stockage demandé (ici, 1 gigaoctets).
 
 ---
 # -------------------- DÉPLOIEMENT POSTGRESQL --------------------

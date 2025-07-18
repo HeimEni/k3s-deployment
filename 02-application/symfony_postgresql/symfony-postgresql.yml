@@ -1,0 +1,177 @@
+# -------------------- SECRETS --------------------
+apiVersion: v1
+kind: Secret
+metadata:
+  name: symfony-secrets
+type: Opaque
+data:
+  # postgresql://postgres:password123@postgres-service:5432/mydatabase (encodé en base64)
+  database-url: cG9zdGdyZXNxbDovL3Bvc3RncmVzOnBhc3N3b3JkMTIzQHBvc3RncmVzLXNlcnZpY2U6NTQzMi9teWRhdGFiYXNl
+  # Généré avec: openssl rand -hex 32 | base64
+  app-secret: YWJjZGVmZ2hpams2bG1ub3BxcnN0dXZ3eHl6MTIzNDU2Nzg5MA==
+  database_password: cGFzc3dvcmQxMjM=
+  database_username: cG9zdGdyZXMtc2VydmljZQ==
+  database_name: bXlkYXRhYmFzZQ==
+
+---
+# -------------------- PERSISTENT VOLUME CLAIM --------------------
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+
+---
+# -------------------- DÉPLOIEMENT POSTGRESQL --------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:15
+          env:
+            - name: POSTGRES_USER
+              value: database_username
+            - name: POSTGRES_PASSWORD
+              value: database_password
+            - name: POSTGRES_DB
+              value: database_name
+          ports:
+            - containerPort: 5432
+          volumeMounts:
+            - name: postgres-data
+              mountPath: /var/lib/postgresql/data
+          # Health checks pour PostgreSQL
+          livenessProbe:
+            exec:
+              command:
+                - pg_isready
+                - -U
+                - postgres
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            exec:
+              command:
+                - pg_isready
+                - -U
+                - postgres
+            initialDelaySeconds: 5
+            periodSeconds: 5
+      volumes:
+        - name: postgres-data
+          persistentVolumeClaim:
+            claimName: postgres-pvc
+
+---
+# -------------------- SERVICE POSTGRESQL --------------------
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-service
+spec:
+  selector:
+    app: postgres
+  ports:
+    - port: 5432
+      targetPort: 5432
+  type: ClusterIP
+
+---
+# -------------------- DEPLOIEMENT SYMFONY --------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: symfony-app
+  labels:
+    app: symfony-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: symfony-app
+  template:
+    metadata:
+      labels:
+        app: symfony-app
+    spec:
+      # Attendre que PostgreSQL soit prêt avant de démarrer Symfony
+      initContainers:
+        - name: wait-for-postgres
+          image: postgres:15
+          command:
+            - sh
+            - -c
+            - |
+              until pg_isready -h postgres-service -p 5432 -U postgres; do
+                echo "Waiting for PostgreSQL..."
+                sleep 2
+              done
+              echo "PostgreSQL is ready!"
+      containers:
+        - name: symfony-app
+          image: maxxa/k3s:latest
+          ports:
+            - containerPort: 80
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: symfony-secrets
+                  key: database-url
+            - name: APP_ENV
+              value: "prod"
+            - name: APP_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: symfony-secrets
+                  key: app-secret
+          # Health checks pour Symfony
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 30
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+---
+# -------------------- SERVICE SYMFONY --------------------
+apiVersion: v1
+kind: Service
+metadata:
+  name: symfony-service
+spec:
+  selector:
+    app: symfony-app
+  ports:
+    - port: 80
+      targetPort: 80
+      # Ajout d'un nodePort pour accès externe si nécessaire
+      nodePort: 30080
+  type: LoadBalancer
