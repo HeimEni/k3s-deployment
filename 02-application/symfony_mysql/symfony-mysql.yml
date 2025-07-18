@@ -73,8 +73,16 @@ spec:
             - containerPort: 3306
           volumeMounts:
             - name: mysql-data
-              mountPath: /var/lib/mysql/data
-
+              mountPath: /var/lib/mysql
+          readinessProbe:
+            exec:
+              command:
+                - mysqladmin
+                - ping
+                - -h
+                - localhost
+            initialDelaySeconds: 30
+            periodSeconds: 10
       volumes:
         - name: mysql-data
           persistentVolumeClaim:
