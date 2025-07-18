@@ -1,12 +1,12 @@
-<h1>Déploiement Nginx sur Kubernetes</h1>
-Ce projet contient un fichier YAML permettant de déployer un serveur Nginx minimal (basé sur l’image nginx:alpine) dans un cluster Kubernetes.
+<h1>Déploiement PostgreSQL sur Kubernetes</h1>
+Ce projet contient un fichier YAML permettant de déployer un serveur PostgreSQL minimal (basé sur l’image postgres:15) dans un cluster Kubernetes.
 
-Le déploiement crée 2 réplicas et expose le port 5432 pour le trafic TCP.
+Le déploiement crée 1 pod et expose le port 5432 pour le trafic TCP.
 
 📂 Contenu du projet <br>
 Contient la définition du déploiement Kubernetes avec :
 
-<li>2 pods PostgreSQL</li>
+<li>1 pods PostgreSQL</li>
 
 <li>Un sélecteur de labels </li>
 
@@ -30,6 +30,19 @@ Applique le manifeste Kubernetes avec la commande : <br>
 Vérifie que les pods sont bien créés : <br>
 <code> kubectl get pods </code>
 
+Connecte toi au pod : <br>
+<code>kubectl exec -it <nom-pod-principal> -- psql -U postgres</code>
+
+Dans le pod tu peux vérifier le bon fonctionnement du postgres en lecture <br>
+<code>\l</code><br>
+<code>\dt</code><br>
+<code>SELECT version();</code>
+
+Vérifier le bon fonctionnement des actions d'écritures: <br>
+<code> CREATE TABLE test_cluster (id SERIAL PRIMARY KEY, data TEXT); </code><br>
+<code> INSERT INTO test_cluster (data) VALUES ('test1'), ('test2'); </code><br>
+<code> SELECT * FROM test_cluster; </code><br>
+
 📌 Notes <br>
-Un service est déployé parralèlement aux pods, ce mécanisme permet d'exposer la base de données aux autres pods la consomant
-Seul les pods du cluster Kube y ont accès
+Un service est déployé parralèlement au pods, ce mécanisme permet d'exposer la base de données aux autres pods la consomant.
+Seul les pods du cluster Kube y ont accès.
