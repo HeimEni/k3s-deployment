@@ -47,7 +47,7 @@ spec:
     spec:
       containers:
         - name: mysql
-          image: mysql:8.0  # Version stable au lieu de latest
+          image: mysql:latest  # Version stable au lieu de latest
           env:
             - name: MYSQL_ROOT_PASSWORD
               valueFrom:
@@ -123,7 +123,7 @@ spec:
       # Attendre que MySQL soit prêt avant de démarrer Symfony
       initContainers:
         - name: wait-for-mysql
-          image: mysql:8.0
+          image: mysql:latest
           command:
             - sh
             - -c
