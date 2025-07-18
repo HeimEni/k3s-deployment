@@ -49,12 +49,26 @@ spec:
         - name: mysql
           image: mysql:latest
           env:
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: symfony-secrets
+                  key: database_password
             - name: MYSQL_USER
-              value: database_username
+              valueFrom:
+                secretKeyRef:
+                  name: symfony-secrets
+                  key: database_username
             - name: MYSQL_PASSWORD
-              value: database_password
+              valueFrom:
+                secretKeyRef:
+                  name: symfony-secrets
+                  key: database_password
             - name: MYSQL_DATABASE
-              value: database_name
+              valueFrom:
+                secretKeyRef:
+                  name: symfony-secrets
+                  key: database_name
           ports:
             - containerPort: 3306
           volumeMounts:
@@ -98,19 +112,19 @@ spec:
       labels:
         app: symfony-app
     spec:
-      # Attendre que PostgreSQL soit prêt avant de démarrer Symfony
+      # Attendre que MySQL soit prêt avant de démarrer Symfony
       initContainers:
-        - name: wait-for-postgres
-          image: postgres:15
+        - name: wait-for-mysql
+          image: mysql:latest
           command:
             - sh
             - -c
             - |
-              until mysql_isready -h mysql-service -p 3306 -U user; do
-                echo "Waiting for PostgreSQL..."
+              until mysqladmin ping -h mysql-service -u root --silent; do
+                echo "Waiting for MySQL..."
                 sleep 2
               done
-              echo "PostgreSQL is ready!"
+              echo "MySQL is ready!"
       containers:
         - name: symfony-app
           image: maxxa/k3s:latest
