@@ -11,7 +11,6 @@ spec:                              # Section spécifiant la configuration du PVC
   resources:                       # Ressources demandées pour le volume.
     requests:                      # Demande de ressources.
       storage: 1Gi                # Taille du stockage demandé (ici, 10 gigaoctets).
-  storageClassName: standard       # Classe de stockage à utiliser (dépend du cluster, peut être "standard", "ssd", etc.).
 
 ---
 # -------------------- DÉPLOIEMENT POSTGRESQL --------------------

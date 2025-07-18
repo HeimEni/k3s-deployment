@@ -14,6 +14,8 @@ Contient la définition du déploiement Kubernetes avec :
 
 <li>Un <i>Service</i> permettant d'exposer le service PostgreSQL aux autres pods du cluster Kube</li>
 
+<li>Un <i>PVC (Permanent Volume Claim)</i> permettant de rattacher notre pod à un PV (Persistant Volume), garantissant la conservation des données au redémarrage du/des pod</li>
+
 🚀 Prérequis<br>
 Avant d’utiliser ce projet, assure-toi d’avoir :
 
