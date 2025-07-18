@@ -5,12 +5,15 @@ metadata:
   name: symfony-secrets
 type: Opaque
 data:
-  # postgresql://postgres:password123@postgres-service:5432/mydatabase (encodé en base64)
-  database-url: cG9zdGdyZXNxbDovL3Bvc3RncmVzOnBhc3N3b3JkMTIzQHBvc3RncmVzLXNlcnZpY2U6NTQzMi9teWRhdGFiYXNl
+  # mysql://user:password@mysql-service:3306/my_database
+  database-url: bXlzcWw6Ly91c2VyOnBhc3N3b3JkQG15c3FsLXNlcnZpY2U6MzMwNi9teV9kYXRhYmFzZQ==
   # Généré avec: openssl rand -hex 32 | base64
   app-secret: YWJjZGVmZ2hpams2bG1ub3BxcnN0dXZ3eHl6MTIzNDU2Nzg5MA==
-  database_password: cGFzc3dvcmQxMjM=
-  database_username: cG9zdGdyZXMtc2VydmljZQ==
+#  password
+  database_password: cGFzc3dvcmQ=
+#  user
+  database_username: dXNlcg==
+#  my_database
   database_name: bXlkYXRhYmFzZQ==
 
 ---
@@ -18,7 +21,7 @@ data:
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: postgres-pvc
+  name: mysql-pvc
 spec:
   accessModes:
     - ReadWriteOnce
@@ -27,70 +30,54 @@ spec:
       storage: 1Gi
 
 ---
-# -------------------- DÉPLOIEMENT POSTGRESQL --------------------
+# -------------------- DÉPLOIEMENT MYSQL --------------------
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: postgres
+  name: mysql
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: postgres
+      app: mysql
   template:
     metadata:
       labels:
-        app: postgres
+        app: mysql
     spec:
       containers:
-        - name: postgres
-          image: postgres:15
+        - name: mysql
+          image: mysql:latest
           env:
-            - name: POSTGRES_USER
+            - name: MYSQL_USER
               value: database_username
-            - name: POSTGRES_PASSWORD
+            - name: MYSQL_PASSWORD
               value: database_password
-            - name: POSTGRES_DB
+            - name: MYSQL_DATABASE
               value: database_name
           ports:
-            - containerPort: 5432
+            - containerPort: 3306
           volumeMounts:
-            - name: postgres-data
-              mountPath: /var/lib/postgresql/data
-          # Health checks pour PostgreSQL
-          livenessProbe:
-            exec:
-              command:
-                - pg_isready
-                - -U
-                - postgres
-            initialDelaySeconds: 30
-            periodSeconds: 10
-          readinessProbe:
-            exec:
-              command:
-                - pg_isready
-                - -U
-                - postgres
-            initialDelaySeconds: 5
-            periodSeconds: 5
+            - name: mysql-data
+              mountPath: /var/lib/mysql/data
+
       volumes:
-        - name: postgres-data
+        - name: mysql-data
           persistentVolumeClaim:
-            claimName: postgres-pvc
+            claimName: mysql-pvc
 
 ---
 # -------------------- SERVICE POSTGRESQL --------------------
 apiVersion: v1
 kind: Service
 metadata:
-  name: postgres-service
+  name: mysql-service
 spec:
   selector:
-    app: postgres
+    app: mysql
   ports:
-    - port: 5432
-      targetPort: 5432
+    - port: 3306
+      targetPort: 3306
   type: ClusterIP
 
 ---
@@ -119,7 +106,7 @@ spec:
             - sh
             - -c
             - |
-              until pg_isready -h postgres-service -p 5432 -U postgres; do
+              until mysql_isready -h mysql-service -p 3306 -U user; do
                 echo "Waiting for PostgreSQL..."
                 sleep 2
               done
