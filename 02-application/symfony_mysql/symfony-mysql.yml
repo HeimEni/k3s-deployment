@@ -6,7 +6,7 @@ metadata:
 type: Opaque
 data:
   # mysql://user:password@mysql-service:3306/my_database
-  database-url: bXlzcWw6Ly91c2VyOnBhc3N3b3JkQG15c3FsLXNlcnZpY2U6MzMwNi9teV9kYXRhYmFzZQ==
+  database-url: bXlzcWw6Ly91c2VyOnBhc3N3b3JkQG15c3FsOjMzMDYvbXlfZGF0YWJhc2U=
   # Généré avec: openssl rand -hex 32 | base64
   app-secret: YWJjZGVmZ2hpams2bG1ub3BxcnN0dXZ3eHl6MTIzNDU2Nzg5MA==
 #  password
@@ -62,7 +62,7 @@ spec:
             - name: MYSQL_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: symfony-secrets
+                  name: symfony-secretscloud
                   key: database_password
             - name: MYSQL_DATABASE
               valueFrom:
