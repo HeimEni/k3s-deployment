@@ -145,7 +145,7 @@ spec:
           # Health checks pour Symfony
           livenessProbe:
             httpGet:
-              path: /
+              path: /article
               port: 80
             initialDelaySeconds: 60
             periodSeconds: 10
@@ -153,7 +153,7 @@ spec:
             failureThreshold: 3
           readinessProbe:
             httpGet:
-              path: /
+              path: /article
               port: 80
             initialDelaySeconds: 30
             periodSeconds: 5
