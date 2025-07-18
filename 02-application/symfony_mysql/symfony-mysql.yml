@@ -6,15 +6,15 @@ metadata:
 type: Opaque
 data:
   # mysql://user:password@mysql-service:3306/my_database
-  database-url: bXlzcWw6Ly91c2VyOnBhc3N3b3JkQG15c3FsOjMzMDYvbXlfZGF0YWJhc2U=
+  database-url: bXlzcWw6Ly91c2VyOnBhc3N3b3JkQG15c3FsLXNlcnZpY2U6MzMwNi9teV9kYXRhYmFzZQ==
   # Généré avec: openssl rand -hex 32 | base64
   app-secret: YWJjZGVmZ2hpams2bG1ub3BxcnN0dXZ3eHl6MTIzNDU2Nzg5MA==
-#  password
+  # password
   database_password: cGFzc3dvcmQ=
-#  user
+  # user
   database_username: dXNlcg==
-#  my_database
-  database_name: bXlkYXRhYmFzZQ==
+  # my_database
+  database_name: bXlfZGF0YWJhc2U=
 
 ---
 # -------------------- PERSISTENT VOLUME CLAIM --------------------
@@ -47,7 +47,7 @@ spec:
     spec:
       containers:
         - name: mysql
-          image: mysql:latest
+          image: mysql:8.0  # Version stable au lieu de latest
           env:
             - name: MYSQL_ROOT_PASSWORD
               valueFrom:
@@ -62,7 +62,7 @@ spec:
             - name: MYSQL_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: symfony-secretscloud
+                  name: symfony-secrets  # CORRIGÉ: était symfony-secretscloud
                   key: database_password
             - name: MYSQL_DATABASE
               valueFrom:
@@ -89,7 +89,7 @@ spec:
             claimName: mysql-pvc
 
 ---
-# -------------------- SERVICE POSTGRESQL --------------------
+# -------------------- SERVICE MYSQL --------------------
 apiVersion: v1
 kind: Service
 metadata:
@@ -123,16 +123,22 @@ spec:
       # Attendre que MySQL soit prêt avant de démarrer Symfony
       initContainers:
         - name: wait-for-mysql
-          image: mysql:latest
+          image: mysql:8.0
           command:
             - sh
             - -c
             - |
-              until mysqladmin ping -h mysql-service -u root --silent; do
+              until mysqladmin ping -h mysql-service -u root -p$MYSQL_ROOT_PASSWORD --silent; do
                 echo "Waiting for MySQL..."
                 sleep 2
               done
               echo "MySQL is ready!"
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: symfony-secrets
+                  key: database_password
       containers:
         - name: symfony-app
           image: maxxa/k3s:latest
