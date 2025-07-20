@@ -13,7 +13,7 @@ metadata:
 type: Opaque
 data:
   # echo -n "mongodb://admin:motdepasse@mongodb-service:27017/madatabase" | base64
-  connection-string: bW9uZ29kYjovL2FkbWluOm1vdGRlcGFzc2VAbW9uZ29kYi1zZXJ2aWNlOjI3MDE3L21hZGF0YWJhc2U=
+  connection-string: bW9uZ29kYjovL2FkbWluOm1vdGRlcGFzc2VAbW9uZ29kYi1zZXJ2aWNlOjI3MDE3L21hZGF0YWJhc2U/YXV0aFNvdXJjZT1hZG1pbg==
   # echo -n "admin" | base64
   username: YWRtaW4=
   # echo -n "motdepasse" | base64
