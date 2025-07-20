@@ -214,39 +214,29 @@ metadata:
 spec:
   selector:
     app: vue-frontend
+  type: NodePort
   ports:
     - port: 8080
       targetPort: 8080
-  type: ClusterIP
+      nodePort: 32000
+
 ---
-# Ingress pour exposer l'application
-apiVersion: networking.k8s.io/v1
-kind: Ingress
+# Service Express.js API
+apiVersion: v1
+kind: Service
 metadata:
-  name: mon-app-ingress
+  name: express-api-service
   namespace: mon-app
-  annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /
 spec:
-  rules:
-    - host: mon-app.local # Changez selon votre domaine
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: vue-frontend-service
-                port:
-                  number: 8080
-          - path: /api
-            pathType: Prefix
-            backend:
-              service:
-                name: express-api-service
-                port:
-                  number: 3000
+  selector:
+    app: express-api
+  type: NodePort
+  ports:
+    - port: 3000
+      targetPort: 3000
+      nodePort: 31000
 ---
+
 # ConfigMap optionnel pour configuration additionnelle
 apiVersion: v1
 kind: ConfigMap
