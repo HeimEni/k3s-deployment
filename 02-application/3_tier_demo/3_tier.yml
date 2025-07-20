@@ -1,0 +1,259 @@
+# Namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: mon-app
+---
+# Secret pour la connexion MongoDB
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mongodb-secret
+  namespace: mon-app
+type: Opaque
+data:
+  # echo -n "mongodb://admin:motdepasse@mongodb-service:27017/madatabase" | base64
+  connection-string: bW9uZ29kYjovL2FkbWluOm1vdGRlcGFzc2VAbW9uZ29kYi1zZXJ2aWNlOjI3MDE3L21hZGF0YWJhc2U=
+  # echo -n "admin" | base64
+  username: YWRtaW4=
+  # echo -n "motdepasse" | base64
+  password: bW90ZGVwYXNzZQ==
+---
+# PersistentVolumeClaim pour MongoDB
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mongodb-pvc
+  namespace: mon-app
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: local-path # Classe de stockage par défaut de K3s
+---
+# Deployment MongoDB
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongodb-deployment
+  namespace: mon-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mongodb
+  template:
+    metadata:
+      labels:
+        app: mongodb
+    spec:
+      containers:
+        - name: mongodb
+          image: mongo:7.0
+          ports:
+            - containerPort: 27017
+          env:
+            - name: MONGO_INITDB_ROOT_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: mongodb-secret
+                  key: username
+            - name: MONGO_INITDB_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mongodb-secret
+                  key: password
+          volumeMounts:
+            - name: mongodb-storage
+              mountPath: /data/db
+          resources:
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+      volumes:
+        - name: mongodb-storage
+          persistentVolumeClaim:
+            claimName: mongodb-pvc
+---
+# Service MongoDB
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb-service
+  namespace: mon-app
+spec:
+  selector:
+    app: mongodb
+  ports:
+    - port: 27017
+      targetPort: 27017
+  type: ClusterIP
+---
+# Deployment Express.js API
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: express-api-deployment
+  namespace: mon-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: express-api
+  template:
+    metadata:
+      labels:
+        app: express-api
+    spec:
+      containers:
+        - name: express-api
+          image: maxxa/k3s_demo_api:latest # Remplacez par votre image
+          ports:
+            - containerPort: 3000
+          env:
+            - name: MONGODB_URI
+              valueFrom:
+                secretKeyRef:
+                  name: mongodb-secret
+                  key: connection-string
+            - name: NODE_ENV
+              value: "production"
+            - name: PORT
+              value: "3000"
+          resources:
+            limits:
+              memory: "256Mi"
+              cpu: "250m"
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+---
+# Service Express.js API
+apiVersion: v1
+kind: Service
+metadata:
+  name: express-api-service
+  namespace: mon-app
+spec:
+  selector:
+    app: express-api
+  ports:
+    - port: 3000
+      targetPort: 3000
+  type: ClusterIP
+---
+# Deployment Vue.js Frontend
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vue-frontend-deployment
+  namespace: mon-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: vue-frontend
+  template:
+    metadata:
+      labels:
+        app: vue-frontend
+    spec:
+      containers:
+        - name: vue-frontend
+          image: maxxa/k3s_demo_vue:latest # Remplacez par votre image
+          ports:
+            - containerPort: 8080
+          env:
+            - name: VITE_API_URL
+              value: "http://express-api-service:3000"
+            - name: NODE_ENV
+              value: "production"
+          resources:
+            limits:
+              memory: "256Mi"
+              cpu: "250m"
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 5
+---
+# Service Vue.js Frontend
+apiVersion: v1
+kind: Service
+metadata:
+  name: vue-frontend-service
+  namespace: mon-app
+spec:
+  selector:
+    app: vue-frontend
+  ports:
+    - port: 80
+      targetPort: 8080
+  type: ClusterIP
+---
+# Ingress pour exposer l'application
+#apiVersion: networking.k8s.io/v1
+#kind: Ingress
+#metadata:
+#  name: mon-app-ingress
+#  namespace: mon-app
+#  annotations:
+#    nginx.ingress.kubernetes.io/rewrite-target: /
+#spec:
+#  rules:
+#    - host: mon-app.local # Changez selon votre domaine
+#      http:
+#        paths:
+#          - path: /
+#            pathType: Prefix
+#            backend:
+#              service:
+#                name: vue-frontend-service
+#                port:
+#                  number: 8080
+#          - path: /api
+#            pathType: Prefix
+#            backend:
+#              service:
+#                name: express-api-service
+#                port:
+#                  number: 3000
+#---
+## ConfigMap optionnel pour configuration additionnelle
+#apiVersion: v1
+#kind: ConfigMap
+#metadata:
+#  name: app-config
+#  namespace: mon-app
+#data:
+#  database-name: "madatabase"
+#  api-version: "v1"
+#  cors-origin: "*"
