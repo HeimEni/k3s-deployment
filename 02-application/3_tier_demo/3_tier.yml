@@ -177,7 +177,7 @@ spec:
     spec:
       initContainers:
         - name: vue-frontend
-          image: node:18-alpine
+          image: maxxa/k3s_demo_vue:latest
           env:
             - name: VITE_API_URL
               value: "http://express-api-service:3000"
