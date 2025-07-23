@@ -175,6 +175,22 @@ spec:
       labels:
         app: vue-frontend
     spec:
+      initContainers:
+        - name: vue-frontend
+          image: node:18-alpine
+          env:
+            - name: VITE_API_URL
+              value: "http://express-api-service:3000"
+            - name: NODE_ENV
+              value: "production"
+          command:
+            - sh
+            - -c
+            - |
+             cd /src
+             npm ci
+             npm run build
+             cp -r dist/* /usr/share/nginx/html
       containers:
         - name: vue-frontend
           image: maxxa/k3s_demo_vue:latest # Remplacez par votre image
