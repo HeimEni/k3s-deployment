@@ -159,7 +159,7 @@ spec:
       targetPort: 3000
   type: ClusterIP
 ---
-# Deployment Vue.js Frontend
+# Deployment Vue.js Frontend avec build
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -176,7 +176,7 @@ spec:
         app: vue-frontend
     spec:
       initContainers:
-        - name: vue
+        - name: vue-builder
           image: maxxa/k3s_demo_vue:latest
           env:
             - name: VITE_API_URL
@@ -187,39 +187,94 @@ spec:
             - sh
             - -c
             - |
-             cd /src
-             npm ci
-             npm run build
-             cp -r dist/* /usr/share/nginx/html
-      containers:
-        - name: vue-frontend
-          image: maxxa/k3s_demo_vue:latest # Remplacez par votre image
-          ports:
-            - containerPort: 8080
-          env:
-            - name: VITE_API_URL
-              value: "http://express-api-service:3000"
-            - name: NODE_ENV
-              value: "production"
+              echo "Début du build Vue.js..."
+              cd /app
+              npm ci --only=production
+              npm run build
+              echo "Build terminé, copie des fichiers..."
+              cp -r dist/* /shared-volume/
+              echo "Fichiers copiés avec succès"
+              ls -la /shared-volume/
+          volumeMounts:
+            - name: shared-volume
+              mountPath: /shared-volume
           resources:
             limits:
+              memory: "512Mi"
+              cpu: "500m"
+            requests:
               memory: "256Mi"
               cpu: "250m"
-            requests:
+      containers:
+        - name: nginx
+          image: nginx:alpine
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - name: shared-volume
+              mountPath: /usr/share/nginx/html
+            - name: nginx-config
+              mountPath: /etc/nginx/conf.d
+          resources:
+            limits:
               memory: "128Mi"
               cpu: "100m"
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
           livenessProbe:
             httpGet:
               path: /
-              port: 8080
+              port: 80
             initialDelaySeconds: 30
             periodSeconds: 10
           readinessProbe:
             httpGet:
               path: /
-              port: 8080
+              port: 80
             initialDelaySeconds: 5
             periodSeconds: 5
+      volumes:
+        - name: shared-volume
+          emptyDir: {}
+        - name: nginx-config
+          configMap:
+            name: nginx-config
+---
+# ConfigMap pour la configuration Nginx
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-config
+  namespace: mon-app
+data:
+  default.conf: |
+    server {
+        listen 80;
+        server_name localhost;
+        root /usr/share/nginx/html;
+        index index.html;
+    
+        # Configuration pour Vue.js SPA (Single Page Application)
+        location / {
+            try_files $uri $uri/ /index.html;
+        }
+    
+        # Gestion des assets statiques
+        location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg)$ {
+            expires 1y;
+            add_header Cache-Control "public, immutable";
+        }
+    
+        # Headers de sécurité
+        add_header X-Frame-Options "SAMEORIGIN" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header X-XSS-Protection "1; mode=block" always;
+    
+        # Logs
+        access_log /var/log/nginx/access.log;
+        error_log /var/log/nginx/error.log;
+    }
 ---
 # Service Vue.js Frontend
 apiVersion: v1
@@ -232,16 +287,15 @@ spec:
     app: vue-frontend
   type: NodePort
   ports:
-    - port: 8080
-      targetPort: 8080
+    - port: 80
+      targetPort: 80
       nodePort: 32000
-
 ---
-# Service Express.js API
+# Service Express.js API avec NodePort
 apiVersion: v1
 kind: Service
 metadata:
-  name: express-api-service
+  name: express-api-service-nodeport
   namespace: mon-app
 spec:
   selector:
@@ -252,7 +306,6 @@ spec:
       targetPort: 3000
       nodePort: 31000
 ---
-
 # ConfigMap optionnel pour configuration additionnelle
 apiVersion: v1
 kind: ConfigMap
